@@ -27,6 +27,10 @@ getIt.registerLazySingleton<ChatMemory>(
   () => ChatMemory(),
 );
 
+getIt.registerLazySingleton<MockAIProvider>(
+  () => MockAIProvider(),
+);
+
     // Example structure (NOT IMPLEMENTED YET):
     // getIt.registerSingleton<Logger>(Logger());
     // getIt.registerSingleton<Storage>(Storage());

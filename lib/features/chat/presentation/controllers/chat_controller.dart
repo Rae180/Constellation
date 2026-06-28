@@ -1,48 +1,82 @@
-import 'dart:async';
-import 'package:constellation/app/bootstrap/dependency_injection.dart';
 import 'package:constellation/core/ai/ai_engine.dart';
-import 'package:constellation/core/domain/entities/message.dart';
+import 'package:constellation/features/chat/domain/conversation_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
-import 'chat_state.dart';
+import '../../../../core/domain/entities/message.dart';
+import '../../../../app/bootstrap/dependency_injection.dart';
 
-final chatControllerProvider =
-    NotifierProvider<ChatController, ChatState>(
-  ChatController.new,
+final conversationControllerProvider =
+    NotifierProvider<ConversationController, ConversationState>(
+  ConversationController.new,
 );
 
-class ChatController extends Notifier<ChatState> {
+class ConversationController extends Notifier<ConversationState> {
   final _uuid = const Uuid();
 
   @override
-  ChatState build() {
-    return const ChatState();
+  ConversationState build() {
+    final id = _uuid.v4();
+
+    return ConversationState(
+      activeConversationId: id,
+      conversations: {
+        id: [],
+      },
+    );
+  }
+
+  void newConversation() {
+    final id = _uuid.v4();
+
+    state = state.copyWith(
+      activeConversationId: id,
+      conversations: {
+        ...state.conversations,
+        id: [],
+      },
+    );
   }
 
   Future<void> sendMessage(String text) async {
-  final trimmed = text.trim();
-  if (trimmed.isEmpty) return;
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
 
-  final userMessage = Message(
-    id: _uuid.v4(),
-    content: trimmed,
-    timestamp: DateTime.now(),
-    role: MessageRole.user,
-  );
+    final userMessage = Message(
+      id: _uuid.v4(),
+      content: trimmed,
+      timestamp: DateTime.now(),
+      role: MessageRole.user,
+    );
 
-  state = state.copyWith(
-    messages: [...state.messages, userMessage],
-  );
+    final updatedMessages = [
+      ...state.activeMessages,
+      userMessage,
+    ];
 
-  final aiEngine = getIt<AIEngine>();
+    _updateActiveConversation(updatedMessages);
 
-  final response = await aiEngine.process(
-    messages: state.messages,
-  );
+    final aiEngine = getIt<AIEngine>();
 
-  state = state.copyWith(
-    messages: [...state.messages, response],
-  );
-}
+    final response = await aiEngine.process(
+      messages: updatedMessages,
+    );
+
+    _updateActiveConversation([
+      ...updatedMessages,
+      response,
+    ]);
+  }
+
+  void _updateActiveConversation(List<Message> messages) {
+    final updated = Map<String, List<Message>>.from(
+      state.conversations,
+    );
+
+    updated[state.activeConversationId] = messages;
+
+    state = state.copyWith(
+      conversations: updated,
+    );
+  }
 }

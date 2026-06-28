@@ -27,27 +27,37 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 
     _controller.clear();
 
-    await ref.read(chatControllerProvider.notifier).sendMessage(text);
+    await ref.read(conversationControllerProvider.notifier).sendMessage(text);
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(chatControllerProvider);
+    final state = ref.watch(conversationControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Constellation Chat"),
-      ),
+      appBar: AppBar(title: const Text("Constellation Chat"),
+      actions: [
+        IconButton(
+      icon: const Icon(Icons.add),
+      onPressed: () {
+        ref.read(conversationControllerProvider.notifier).newConversation();
+      },
+    ),
+      ],),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
-              itemCount: state.messages.length,
+              itemCount: state.activeMessages.length,
               itemBuilder: (context, index) {
-                final message = state.messages[index];
+                final message = state.activeMessages[index];
 
                 return ListTile(
-                  leading: Icon(message.role == MessageRole.user ? Icons.person : Icons.smart_toy),
+                  leading: Icon(
+                    message.role == MessageRole.user
+                        ? Icons.person
+                        : Icons.smart_toy,
+                  ),
                   title: Text(message.content),
                   subtitle: Text(message.role.name),
                 );
